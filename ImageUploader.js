@@ -1,0 +1,38 @@
+// components/ImageUploader.js
+import { useState } from 'react';
+export default function ImageUploader({ onClassified }) {
+  const [preview, setPreview] = useState(null);
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5_000_000) {
+      alert('Image too large (max 5MB).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setPreview(reader.result);
+      const resp = await fetch('/api/classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: reader.result })
+      });
+      const { label } = await resp.json();
+      onClassified(label);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <>
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFile}
+      />
+      {preview && <img src={preview} alt="Preview" style={{ maxWidth: '100%' }} />}
+    </>
+  );
+}
